@@ -8,7 +8,15 @@ import threading
 
 from requests_oauthlib import *
 
-import sms.v0
+# import grpc
+
+# import helloworld_pb2
+# import helloworld_pb2_grpc
+
+# # import sms.v0.sms_pb2 as SMSProto
+# # import sms.v0.sms_pb2_grpc as grpc
+# channel = grpc.insecure_channel('localhost:50051')
+# stub = SMSProto.RouteGuideStub(channel)
 
 PORT = 9000
 
@@ -82,9 +90,13 @@ def oauth():
         'https://id.wgtwo.com/oauth2/token',
         authorization_response=authorization_response,
         client_secret=client_secret)
+    
+    print()
+    print(token)
 
     r = oauth.get('https://id.wgtwo.com/userinfo')
-    print(r)
+    print('RRRRRgggg')
+    print(r.text)
     # Enjoy =)
 
 if __name__ == "__main__":
