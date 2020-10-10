@@ -4,17 +4,12 @@ import json
 import urllib
 import random
 import string
-import threading
 import os
-
 from requests_oauthlib import *
-
-from google import auth as google_auth
-
 from wgtwo.sms.v0 import sms_pb2_grpc, sms_pb2
 from wgtwo.common.v0.phonenumber_pb2 import PhoneNumber, TextAddress
-
 import grpc
+from cli import mainMenu
 
 secretsPath = 'secrets.json'
 try:
@@ -26,17 +21,19 @@ except:
 
 with open(secretsPath, mode='r', encoding='utf8') as f:
     secrets = json.load(f)
-# print(secrets)
 PORT = secrets['port']
 client_id = secrets['working-group-two']['oauth2']['client_id']
 client_secret = secrets['working-group-two']['oauth2']['client_secret']
 redirect_uri = secrets['working-group-two']['oauth2']['redirect_uri']
 
-phonebook = {}
-# class PhoneBook(object):
-#     JONATAN = { 'number': '+46738020525', 'token': '<secret>' }
-# PhoneBook = {}
 
+phonebook = {}
+try:
+    with open('data.json', 'r') as fp:
+        phonebook = json.load(fp)
+except:
+    with open('data.json', 'w') as fp:
+        json.dump(phonebook, fp)
 def sendSms(number):
 
     call =  grpc.access_token_call_credentials(phonebook[number])
@@ -45,14 +42,14 @@ def sendSms(number):
     channel = grpc.secure_channel('api.wgtwo.com:443', combined)
 
     stub = sms_pb2_grpc.SmsServiceStub(channel)
-
-    # message =
-    x = stub.SendTextToSubscriber(
-        sms_pb2.SendTextToSubscriberRequest(
-            content='Jag älskar Haskell du hade rätt hela tiden',
-            from_text_address=TextAddress(textAddress='Dumbphone C'),
-            to_subscriber=PhoneNumber(e164=number)))
-    print(x)
+    def sendWithText(text):
+        x = stub.SendTextToSubscriber(
+            sms_pb2.SendTextToSubscriberRequest(
+                content=text,
+                from_text_address=TextAddress(textAddress='Dumbphone C'),
+                to_subscriber=PhoneNumber(e164=number)))
+        print(x)
+    mainMenu('',sendWithText)
 
 
 
@@ -105,6 +102,8 @@ class S(BaseHTTPRequestHandler):
             print(phonebook)
             self.wfile.write("You are now logged on with {} <br><a href=/sendsms?number={}>sms</a>".format(phonenumber,phonenumber).encode('utf-8'))
 
+            with open('data.json', 'w') as fp:
+                json.dump(phonebook, fp)
         elif self.path.startswith('/sendsms'):
             query = urllib.parse.urlparse(self.path).query.split("&")
             number = [i for i in query if i.find("number") != -1][-1].split("=")[-1]

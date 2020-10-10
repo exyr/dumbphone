@@ -10,4 +10,5 @@ def mainMenu(read,write):
 reader = lambda r: print(r)
 # writer = lambda _: input()
 
-mainMenu('',reader)
+if __name__ == "__main__":
+    mainMenu('',reader)
