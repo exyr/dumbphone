@@ -23,15 +23,15 @@ client_id = secrets['working-group-two']['oauth2']['client_id']
 client_secret = secrets['working-group-two']['oauth2']['client_secret']
 redirect_uri = secrets['working-group-two']['oauth2']['redirect_uri']
 
-class PhoneBook(object):
-    JONATAN = { 'number': '+46738020525', 'token': '<secret>' }
-    LUCAS   = { 'number': '+46730347518', 'token': '<secret>' }
+phonebook = {}
+# class PhoneBook(object):
+#     JONATAN = { 'number': '+46738020525', 'token': '<secret>' }
+# PhoneBook = {}
 
-def grejsigrunkor():
-    VEM = PhoneBook.JONATAN
+def sendSms(number):
 
-    call =  grpc.access_token_call_credentials(VEM['token'])
-    channel =  grpc.ssl_channel_credentials() 
+    call =  grpc.access_token_call_credentials(phonebook[number])
+    channel =  grpc.ssl_channel_credentials()
     combined = grpc.composite_channel_credentials(channel, call)
     channel = grpc.secure_channel('api.wgtwo.com:443', combined)
 
@@ -41,21 +41,17 @@ def grejsigrunkor():
     x = stub.SendTextToSubscriber(
         sms_pb2.SendTextToSubscriberRequest(
             content='Jag älskar Haskell du hade rätt hela tiden',
-            from_text_address=TextAddress(textAddress='Luben'),
-            to_subscriber=PhoneNumber(e164=VEM['number'])))
+            from_text_address=TextAddress(textAddress='Dumbphone C'),
+            to_subscriber=PhoneNumber(e164=number)))
     print(x)
-    
-scope = 'offline_access openid phone sms.send.to_subscriber'
+
+
 
 oauth = OAuth2Session(
     client_id,
     redirect_uri=redirect_uri,
-    scope=scope)
-
-authorization_url, state = oauth.authorization_url(
-        'https://id.wgtwo.com/oauth2/auth',
-        nonce=''.join(random.choice(string.ascii_uppercase + string.ascii_lowercase + string.digits) for _ in range(16)),
-        prompt="login")
+    scope='offline_access openid phone sms.send.to_subscriber')
+# oauthState = ''
 
 
 class S(BaseHTTPRequestHandler):
@@ -74,21 +70,45 @@ class S(BaseHTTPRequestHandler):
             query = urllib.parse.parse_qs(path.query)
             print('query')
             print(query)
-            self.wfile.write("You want to log on".format(self.path).encode('utf-8'))
 
             authorization_response = self.path
+            params = authorization_response.split('/logged-in')[-1]
+            reworked_authorization = redirect_uri + params
+            print("got back:",authorization_response)
+            print("rewriting to:",reworked_authorization)
+            # orignal_url = input("paste auth url:")
+            # print("rewriting to:",reworked_authorization)
+            # print("orignal",orignal_url)
+            # print("are they equal",reworked_authorization==orignal_url)
+            # state = oauthState
             token = oauth.fetch_token(
                 'https://id.wgtwo.com/oauth2/token',
-                authorization_response=authorization_response,
+                authorization_response=reworked_authorization,
                 client_secret=client_secret)
             
             print('token from oauth.fetch_token')
-            print(token)        
+            print(token)
             r = oauth.get('https://id.wgtwo.com/userinfo')
             print(r.text)
-            r.text.phonenumber
+            # json.loads(r.text).phonenumber
+            phonenumber = json.loads(r.text)['phone_number']
+            phonebook[phonenumber] = token['access_token']
+            print(phonebook)
+            self.wfile.write("You are now logged on with {} <br><a href=/sendsms?number={}>sms</a>".format(phonenumber,phonenumber).encode('utf-8'))
+
+        elif self.path.startswith('/sendsms'):
+            query = urllib.parse.urlparse(self.path).query.split("&")
+            number = [i for i in query if i.find("number") != -1][-1].split("=")[-1]
+            sendSms(number)
         else:
-            self.wfile.write("GET request for {}".format(self.path).encode('utf-8'))
+            authorization_url, state = oauth.authorization_url(
+                'https://id.wgtwo.com/oauth2/auth',
+                nonce=''.join(
+                    random.choice(string.ascii_uppercase + string.ascii_lowercase + string.digits) for _ in range(16)),
+                prompt="login")
+            self.wfile.write("GET request for {}<br><a href='{}'>login</a><br><a href='/sendsms'>send SMS</a>".format(self.path,authorization_url).encode('utf-8'))
+            print(state)
+            # oauthState = state
 
     def do_POST(self):
         content_length = int(self.headers['Content-Length']) # <--- Gets the size of data
@@ -112,7 +132,4 @@ def run(server_class=HTTPServer, handler_class=S, port=PORT):
     logging.info('Stopping httpd...\n')
 
 if __name__ == "__main__":
-    # grejsigrunkor()
-    # print("hej")
-    threading.Thread(target=oauth).start()
     run()
