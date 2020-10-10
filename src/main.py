@@ -5,6 +5,7 @@ import urllib
 import random
 import string
 import threading
+import os
 
 from requests_oauthlib import *
 
@@ -15,9 +16,17 @@ from wgtwo.common.v0.phonenumber_pb2 import PhoneNumber, TextAddress
 
 import grpc
 
-with open('./secrets.json', mode='r', encoding='utf8') as f:
+secretsPath = 'secrets.json'
+try:
+    secretsPath = os.environ['SECRET_PATH']
+    print("using runtime mounted secret")
+
+except:
+    print("using default {}".format(secretsPath))
+
+with open(secretsPath, mode='r', encoding='utf8') as f:
     secrets = json.load(f)
-print(secrets)
+# print(secrets)
 PORT = secrets['port']
 client_id = secrets['working-group-two']['oauth2']['client_id']
 client_secret = secrets['working-group-two']['oauth2']['client_secret']

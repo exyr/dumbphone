@@ -1,0 +1,17 @@
+version: "3.8"
+
+services:
+  web:
+    build: .
+#    volumes:
+#      - .:/code
+    ports:
+      - "8080:9001"
+    secrets:
+      - secrets.json
+    environment:
+      SECRET_PATH: /run/secrets/secrets.json
+secrets:
+  secrets.json:
+    file: ./secrets.json
+
