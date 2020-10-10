@@ -18,11 +18,11 @@ from requests_oauthlib import *
 # channel = grpc.insecure_channel('localhost:50051')
 # stub = SMSProto.RouteGuideStub(channel)
 
-PORT = 9000
 
 with open('./secrets.json', mode='r', encoding='utf8') as f:
     secrets = json.load(f)
 print(secrets)
+PORT = secrets['port']
 
 class S(BaseHTTPRequestHandler):
     def _set_response(self):
@@ -69,7 +69,7 @@ def run(server_class=HTTPServer, handler_class=S, port=PORT):
 def oauth():
     client_id = secrets['working-group-two']['oauth2']['client_id']
     client_secret = secrets['working-group-two']['oauth2']['client_secret']
-    redirect_uri = 'https://jonatan-raw.vimla.work/logged-in'
+    redirect_uri = secrets['working-group-two']['oauth2']['redirect_uri']
 
     scope = 'offline_access openid phone sms.send.to_subscriber'
     oauth = OAuth2Session(
