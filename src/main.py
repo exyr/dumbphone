@@ -69,45 +69,50 @@ class S(BaseHTTPRequestHandler):
     def do_GET(self):
         logging.info("GET request,\nPath: %s\nHeaders:\n%s\n", str(self.path), str(self.headers))
         self._set_response()
+        try:
+            if self.path.startswith('/logged-in'):
+                path = urllib.parse.urlparse(self.path)
+                query = urllib.parse.parse_qs(path.query)
 
-        if self.path.startswith('/logged-in'):
-            path = urllib.parse.urlparse(self.path)
-            query = urllib.parse.parse_qs(path.query)
+                authorization_response = self.path
+                params = authorization_response.split('/logged-in')[-1]
+                reworked_authorization = redirect_uri + params
+                # print("got back:", authorization_response)
+                # print("rewriting to:", reworked_authorization)
 
-            authorization_response = self.path
-            params = authorization_response.split('/logged-in')[-1]
-            reworked_authorization = redirect_uri + params
-            # print("got back:", authorization_response)
-            # print("rewriting to:", reworked_authorization)
+                token = oauth.fetch_token(
+                    'https://id.wgtwo.com/oauth2/token',
+                    authorization_response=reworked_authorization,
+                    client_secret=client_secret)
 
-            token = oauth.fetch_token(
-                'https://id.wgtwo.com/oauth2/token',
-                authorization_response=reworked_authorization,
-                client_secret=client_secret)
+                r = oauth.get('https://id.wgtwo.com/userinfo')
+                print(r.text)
+                phonenumber = json.loads(r.text)['phone_number']
+                phonebook[phonenumber] = token['access_token']
+                print(phonebook)
+                self.wfile.write("You are now logged on with {} <br><a href=/sendsms?number={}>sms</a>".format(phonenumber,phonenumber).encode('utf-8'))
+                with open('data.json', 'w') as fp:
+                    json.dump(phonebook, fp)
 
-            r = oauth.get('https://id.wgtwo.com/userinfo')
-            print(r.text)
-            phonenumber = json.loads(r.text)['phone_number']
-            phonebook[phonenumber] = token['access_token']
-            print(phonebook)
-            self.wfile.write("You are now logged on with {} <br><a href=/sendsms?number={}>sms</a>".format(phonenumber,phonenumber).encode('utf-8'))
-            with open('data.json', 'w') as fp:
-                json.dump(phonebook, fp)
+            elif self.path.startswith('/sendsms'):
+                query = urllib.parse.urlparse(self.path).query.split("&")
+                number = [i for i in query if i.find("number") != -1][-1].split("=")[-1]
+                sendSms(number)
+                self.wfile.write("sent menu to {}".format(number).encode('utf-8'))
 
-        elif self.path.startswith('/sendsms'):
-            query = urllib.parse.urlparse(self.path).query.split("&")
-            number = [i for i in query if i.find("number") != -1][-1].split("=")[-1]
-            sendSms(number)
 
-        else:
-            authorization_url, state = oauth.authorization_url(
-                'https://id.wgtwo.com/oauth2/auth',
-                nonce=''.join(
-                    random.choice(string.ascii_uppercase + string.ascii_lowercase + string.digits) for _ in range(16)),
-                prompt="login")
-            self.wfile.write(
-                "GET request for {}<br><a href='{}'>login</a><br>".format(self.path, authorization_url).encode('utf-8'))
-
+            else:
+                authorization_url, state = oauth.authorization_url(
+                    'https://id.wgtwo.com/oauth2/auth',
+                    nonce=''.join(
+                        random.choice(string.ascii_uppercase + string.ascii_lowercase + string.digits) for _ in range(16)),
+                    prompt="login")
+                self.wfile.write(
+                    "GET request for {}<br><a href='{}'>login</a><br>".format(self.path, authorization_url).encode('utf-8'))
+        except Exception as ex:
+            print("Error",ex)
+            print(repr(ex))
+            self.send_error(message="Internal Server Error",code=500)
     def do_POST(self):
         content_length = int(self.headers['Content-Length'])  # <--- Gets the size of data
         post_data = self.rfile.read(content_length)  # <--- Gets the data itself
