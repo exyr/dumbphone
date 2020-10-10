@@ -1,3 +1,4 @@
+import base64
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
 import urllib
@@ -8,6 +9,8 @@ from requests_oauthlib import *
 from wgtwo.sms.v0 import sms_pb2_grpc, sms_pb2
 from wgtwo.common.v0.phonenumber_pb2 import PhoneNumber, TextAddress
 import grpc
+import codecs
+
 
 from cli import mainMenu
 
@@ -53,11 +56,34 @@ def sendSms(number):
 
     mainMenu('', sendWithText)
 
+def reciveSms():
+
+    org_id = secrets["working-group-two"]["vimla"]["client_id"]
+    org_secret = secrets["working-group-two"]["vimla"]["client_secret"]
+    message_bytes = '{}:{}'.format(org_id,org_secret)
+
+    sample_string_bytes = message_bytes.encode("ascii")
+
+    base64_bytes = base64.b64encode(sample_string_bytes)
+    basicAuth = "Basic "+base64_bytes.decode("ascii")
+
+    # basicAuth = "Basic {}".format(base64.b64encode('.encode('utf-8')).decode('utf-8'))
+    call = grpc.access_token_call_credentials(basicAuth)
+    channel = grpc.ssl_channel_credentials()
+    combined = grpc.composite_channel_credentials(channel, call)
+    channel = grpc.secure_channel('api.wgtwo.com:443', combined)
+    stub = sms_pb2_grpc.SmsServiceStub(channel)
+    try:
+        for sms in stub.ReceiveText(sms_pb2.ReceiveTextRequest()):
+            print("got sms",sms)
+    except Exception as ex:
+        print(repr(ex))
+
 
 oauth = OAuth2Session(
     client_id,
     redirect_uri=redirect_uri,
-    scope='offline_access openid phone sms.send.to_subscriber')
+    scope='offline_access openid phone sms.send.to_subscriber sms.send.from_subscriber')
 
 
 class S(BaseHTTPRequestHandler):
@@ -137,4 +163,5 @@ def run(server_class=HTTPServer, handler_class=S, port=PORT):
 
 
 if __name__ == "__main__":
+    # reciveSms()
     run()
