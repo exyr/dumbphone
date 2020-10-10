@@ -9,27 +9,28 @@ import threading
 from requests_oauthlib import *
 
 from google import auth as google_auth
-from google.auth.transport import grpc as google_auth_transport_grpc
-
-# import grpc
-
-# import helloworld_pb2
-# import helloworld_pb2_grpc
 
 from wgtwo.sms.v0 import sms_pb2_grpc, sms_pb2
 from wgtwo.common.v0.phonenumber_pb2 import PhoneNumber, TextAddress
 
-# # import sms.v0.sms_pb2 as SMSProto
-# # import sms.v0.sms_pb2_grpc as grpc
-# channel = grpc.insecure_channel('localhost:50051')
-# stub = SMSProto.RouteGuideStub(channel)
-
-
 import grpc
 
+with open('./secrets.json', mode='r', encoding='utf8') as f:
+    secrets = json.load(f)
+print(secrets)
+PORT = secrets['port']
+client_id = secrets['working-group-two']['oauth2']['client_id']
+client_secret = secrets['working-group-two']['oauth2']['client_secret']
+redirect_uri = secrets['working-group-two']['oauth2']['redirect_uri']
+
+class PhoneBook(object):
+    JONATAN = { 'number': '+46738020525', 'token': '<secret>' }
+    LUCAS   = { 'number': '+46730347518', 'token': '<secret>' }
+
 def grejsigrunkor():
-    token = 'NMjRrDtoG2wPAb-afMulkVmDKhDHkkreQdzzS_T0C7E._uerp7pSvDhXvdrqa-uNRJdSpHVcRMvbgd0POf8lruQ'
-    call =  grpc.access_token_call_credentials(token) 
+    VEM = PhoneBook.JONATAN
+
+    call =  grpc.access_token_call_credentials(VEM['token'])
     channel =  grpc.ssl_channel_credentials() 
     combined = grpc.composite_channel_credentials(channel, call)
     channel = grpc.secure_channel('api.wgtwo.com:443', combined)
@@ -39,15 +40,23 @@ def grejsigrunkor():
     # message =
     x = stub.SendTextToSubscriber(
         sms_pb2.SendTextToSubscriberRequest(
-            content='Jag skickar kodmess',
-            from_text_address=TextAddress(textAddress='Dumbphone C'),
-            to_subscriber=PhoneNumber(e164='+46738020525')))
+            content='Jag älskar Haskell du hade rätt hela tiden',
+            from_text_address=TextAddress(textAddress='Luben'),
+            to_subscriber=PhoneNumber(e164=VEM['number'])))
     print(x)
+    
+scope = 'offline_access openid phone sms.send.to_subscriber'
 
-with open('./secrets.json', mode='r', encoding='utf8') as f:
-    secrets = json.load(f)
-print(secrets)
-PORT = secrets['port']
+oauth = OAuth2Session(
+    client_id,
+    redirect_uri=redirect_uri,
+    scope=scope)
+
+authorization_url, state = oauth.authorization_url(
+        'https://id.wgtwo.com/oauth2/auth',
+        nonce=''.join(random.choice(string.ascii_uppercase + string.ascii_lowercase + string.digits) for _ in range(16)),
+        prompt="login")
+
 
 class S(BaseHTTPRequestHandler):
     def _set_response(self):
@@ -66,7 +75,18 @@ class S(BaseHTTPRequestHandler):
             print('query')
             print(query)
             self.wfile.write("You want to log on".format(self.path).encode('utf-8'))
-            # '/logged-in?foo=bar'
+
+            authorization_response = self.path
+            token = oauth.fetch_token(
+                'https://id.wgtwo.com/oauth2/token',
+                authorization_response=authorization_response,
+                client_secret=client_secret)
+            
+            print('token from oauth.fetch_token')
+            print(token)        
+            r = oauth.get('https://id.wgtwo.com/userinfo')
+            print(r.text)
+            r.text.phonenumber
         else:
             self.wfile.write("GET request for {}".format(self.path).encode('utf-8'))
 
@@ -91,41 +111,8 @@ def run(server_class=HTTPServer, handler_class=S, port=PORT):
     httpd.server_close()
     logging.info('Stopping httpd...\n')
 
-def oauth():
-    client_id = secrets['working-group-two']['oauth2']['client_id']
-    client_secret = secrets['working-group-two']['oauth2']['client_secret']
-    redirect_uri = secrets['working-group-two']['oauth2']['redirect_uri']
-
-    scope = 'offline_access openid phone sms.send.to_subscriber'
-    oauth = OAuth2Session(
-        client_id,
-        redirect_uri=redirect_uri,
-        scope=scope)
-    
-    authorization_url, state = oauth.authorization_url(
-            'https://id.wgtwo.com/oauth2/auth',
-            nonce=''.join(random.choice(string.ascii_uppercase + string.ascii_lowercase + string.digits) for _ in range(16)),
-            prompt="login")
-
-    print(state)
-    print('Please go to %s and authorize access.' % authorization_url)
-    authorization_response = input('Enter the full callback URL')
-
-    token = oauth.fetch_token(
-        'https://id.wgtwo.com/oauth2/token',
-        authorization_response=authorization_response,
-        client_secret=client_secret)
-    
-    print('token from oauth.fetch_token')
-    print(token)
-
-    r = oauth.get('https://id.wgtwo.com/userinfo')
-    print('RRRRRgggg')
-    print(r.text)
-    # Enjoy =)
-
 if __name__ == "__main__":
-    grejsigrunkor()
+    # grejsigrunkor()
     # print("hej")
-    # threading.Thread(target=oauth).start()
-    # run()
+    threading.Thread(target=oauth).start()
+    run()
