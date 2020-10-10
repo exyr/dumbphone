@@ -8,16 +8,41 @@ import threading
 
 from requests_oauthlib import *
 
+from google import auth as google_auth
+from google.auth.transport import grpc as google_auth_transport_grpc
+
 # import grpc
 
 # import helloworld_pb2
 # import helloworld_pb2_grpc
+
+from wgtwo.sms.v0 import sms_pb2_grpc, sms_pb2
+from wgtwo.common.v0.phonenumber_pb2 import PhoneNumber, TextAddress
 
 # # import sms.v0.sms_pb2 as SMSProto
 # # import sms.v0.sms_pb2_grpc as grpc
 # channel = grpc.insecure_channel('localhost:50051')
 # stub = SMSProto.RouteGuideStub(channel)
 
+
+import grpc
+
+def grejsigrunkor():
+    token = 'NMjRrDtoG2wPAb-afMulkVmDKhDHkkreQdzzS_T0C7E._uerp7pSvDhXvdrqa-uNRJdSpHVcRMvbgd0POf8lruQ'
+    call =  grpc.access_token_call_credentials(token) 
+    channel =  grpc.ssl_channel_credentials() 
+    combined = grpc.composite_channel_credentials(channel, call)
+    channel = grpc.secure_channel('api.wgtwo.com:443', combined)
+
+    stub = sms_pb2_grpc.SmsServiceStub(channel)
+
+    # message =
+    x = stub.SendTextToSubscriber(
+        sms_pb2.SendTextToSubscriberRequest(
+            content='Jag skickar kodmess',
+            from_text_address=TextAddress(textAddress='Dumbphone C'),
+            to_subscriber=PhoneNumber(e164='+46738020525')))
+    print(x)
 
 with open('./secrets.json', mode='r', encoding='utf8') as f:
     secrets = json.load(f)
@@ -91,7 +116,7 @@ def oauth():
         authorization_response=authorization_response,
         client_secret=client_secret)
     
-    print()
+    print('token from oauth.fetch_token')
     print(token)
 
     r = oauth.get('https://id.wgtwo.com/userinfo')
@@ -100,6 +125,7 @@ def oauth():
     # Enjoy =)
 
 if __name__ == "__main__":
-    print("hej")
-    threading.Thread(target=oauth).start()
-    run()
+    grejsigrunkor()
+    # print("hej")
+    # threading.Thread(target=oauth).start()
+    # run()
