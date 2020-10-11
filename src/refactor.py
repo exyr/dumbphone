@@ -37,7 +37,7 @@ def logged_in():
 
     r = secret.oauth.get('https://id.wgtwo.com/userinfo')
     phonenumber = json.loads(r.text)['phone_number']
-    phonebook.save(phonenumber, token['access_token'])
+    phonebook.save_wg2_token(phonenumber, token['access_token'])
     return f'You are now logged on with {phonenumber} <br><a href=/sendsms?number={urllib.parse.quote(phonenumber)}>sms</a> '
 
 
@@ -49,19 +49,18 @@ def login_vimla():
     # print(repr(request))
     username = request.values['username']
     password = request.values['pwd']
-    api = VimlaAPI()
-    loginResponse = api.login(username,password)
-    print(loginResponse)
+    session = VimlaAPI.login(username,password)
+    number = '+46' + session.readMembersMe()['data']['phoneNumber'][1:]
+    phonebook.save_vimla_token(number,session.access_token)
     return f'ok gonna login {username}'
 
 
 @app.route("/sendsms", methods=['GET'])
 def send_sms():
     number = request.args.get('number')
-    token = phonebook.get_token(number)
+    token = phonebook.get_wg2_token(number)
     mainMenu('', send_grpc_sms(number, token))
     return f'sent menu sms to {number}'
-
 
 
 

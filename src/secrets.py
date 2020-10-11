@@ -1,7 +1,7 @@
 import json
 import os
 from requests_oauthlib import OAuth2Session
-
+from collections import defaultdict
 
 class Secret:
     secretsPath = 'secrets.json'
@@ -23,10 +23,10 @@ class Secret:
         scope='offline_access openid phone sms.send.to_subscriber sms.send.from_subscriber')
 
 
-phonebook = {}
 
 
 class PhoneBook:
+    phonebook = defaultdict(lambda: {})
     path = 'data.json'
 
     def __init__(self, path='data.json'):
@@ -35,13 +35,23 @@ class PhoneBook:
             with open(self.path, 'r') as fp:
                 self.phonebook = json.load(fp)
         except:
-            with open(self.path, 'w') as fp:
-                json.dump(self.phonebook, fp)
+            self.save()
 
-    def save(self, phonenumber: str, access_token: str):
-        self.phonebook[phonenumber] = access_token
+    def save_wg2_token(self, phonenumber: str, wg2_token: str):
+        self.phonebook[phonenumber]['wg2_token'] = wg2_token
+        self.save()
+
+    def save_vimla_token(self, phonenumber: str, vimla_token: str):
+        self.phonebook[phonenumber]['vimla_token'] = vimla_token
+        self.save()
+       
+    def save(self):
         with open(self.path, 'w') as fp:
             json.dump(self.phonebook, fp)
 
-    def get_token(self, phonenumber: str):
-        return self.phonebook[phonenumber]
+
+    def get_wg2_token(self, phonenumber: str):
+        return self.phonebook[phonenumber]['wg2_token']
+
+    def get_vimla_token(self, phonenumber: str):
+        return self.phonebook[phonenumber]['vimla_token']
