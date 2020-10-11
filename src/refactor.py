@@ -38,7 +38,7 @@ def logged_in():
     r = secret.oauth.get('https://id.wgtwo.com/userinfo')
     phonenumber = json.loads(r.text)['phone_number']
     phonebook.save_wg2_token(phonenumber, token['access_token'])
-    return f'You are now logged on with {phonenumber} <br><a href=/sendsms?number={urllib.parse.quote(phonenumber)}>sms</a> '
+    return f'You are now logged on with {phonenumber} <br> <a href=/login/vimla>Connect vimla</a>'
 
 
 @app.route('/login/vimla', methods=['GET', 'POST'])
@@ -51,22 +51,19 @@ def login_vimla():
     password = request.values['pwd']
     session = VimlaAPI.login(username,password)
     number = '+46' + session.readMembersMe()['data']['phoneNumber'][1:]
-    phonebook.save_vimla_token(number,session.access_token)
-    return f'ok gonna login {username}'
+    phonebook.save_vimla_token(number, session.token_id)
+    return f'ok gonna login {username} <a href=/sendsms?number={urllib.parse.quote(number)}>sms</a>'
 
 
 @app.route("/sendsms", methods=['GET'])
 def send_sms():
     number = request.args.get('number')
-    token = phonebook.get_wg2_token(number)
-    mainMenu('', send_grpc_sms(number, token))
+    wg2token = phonebook.get_wg2_token(number)
+    vimla_token = VimlaAPI.Session({'access_token':phonebook.get_vimla_token(number)})
+    mainMenu('', send_grpc_sms(number, wg2token),vimla_token)
     return f'sent menu sms to {number}'
 
 
-
-
-class DumbphoneCLI(object):
-    pass
 
 
 if __name__ == '__main__':
