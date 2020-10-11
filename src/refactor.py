@@ -1,8 +1,5 @@
 import urllib
-from flask import request
-import requests
-from flask import Flask, request, redirect
-from requests_oauthlib import *
+from flask import Flask, request, redirect, render_template
 import json
 import random
 import string
@@ -10,6 +7,7 @@ import string
 from cli import mainMenu
 from secrets import PhoneBook, Secret
 from sms_service import send_grpc_sms
+from vimla_api import VimlaAPI
 
 app = Flask(__name__)
 phonebook = PhoneBook()
@@ -23,7 +21,7 @@ def hello_world():
         nonce=''.join(
             random.choice(string.ascii_uppercase + string.ascii_lowercase + string.digits) for _ in range(16)),
         prompt="login")
-    return f'Your phone is DUMB AS FUCK <a href="{authorization_url}">login</a>'
+    return f'Welcome to Dumbphone, the smart SMS CLI for your subscription: <a href="{authorization_url}">Login</a>'
 
 
 @app.route('/logged-in', methods=['GET'])
@@ -42,6 +40,21 @@ def logged_in():
     phonebook.save(phonenumber, token['access_token'])
     return f'You are now logged on with {phonenumber} <br><a href=/sendsms?number={urllib.parse.quote(phonenumber)}>sms</a> '
 
+
+@app.route('/login/vimla', methods=['GET', 'POST'])
+def login_vimla():
+    print('got login vimla',request.method,request.method == 'GET')
+    if request.method == 'GET':
+        return render_template('vimla_login.html')
+    # print(repr(request))
+    username = request.values['username']
+    password = request.values['pwd']
+    api = VimlaAPI()
+    loginResponse = api.login(username,password)
+    print(loginResponse)
+    return f'ok gonna login {username}'
+
+
 @app.route("/sendsms", methods=['GET'])
 def send_sms():
     number = request.args.get('number')
@@ -51,38 +64,6 @@ def send_sms():
 
 
 
-class VimlaAPI(object):
-    HOST_NAME = 'https://api.vimla.se'
-    CLIENT_ID = 'P19aGSatiN2D1vfkfzjwTmUu5M9kh1i0'
-
-    class Session(object):
-        def __init__(self, authorization):
-            self.__dict__.update(authorization)
-            self.headers = {'Authorization': f'Bearer {self.access_token}'}
-
-        def readPriceplan(self):
-            return requests.request('GET', f'{VimlaAPI.HOST_NAME}/members/me/subscriptions/-0/priceplan',
-                                    headers=self.headers).json()
-
-    @staticmethod
-    def login(username, password):
-        body = {
-            'client_id': VimlaAPI.CLIENT_ID,
-            'grant_type': 'password',
-            'scope': 'member member_invoice member.full_control',
-            'username': username,
-            'password': password
-        }
-
-        return VimlaAPI.Session(requests.request('POST', f'{VimlaAPI.HOST_NAME}/auth/token', data=body).json())
-
-
-# User Story
-# 
-# Once upon a time, a Vimla user decide to sign up for the Dumphone CLI. Hurrah!
-# Good choice, clever Vimla user!
-#
-# 
 
 
 class DumbphoneCLI(object):
