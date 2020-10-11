@@ -4,7 +4,8 @@ import json
 import random
 import string
 
-from cli import mainMenu
+# from cli import mainMenu
+from cli import DumbphoneCLI
 from secrets import PhoneBook, Secret
 from sms_service import send_grpc_sms
 from vimla_api import VimlaAPI
@@ -51,7 +52,7 @@ def login_vimla():
     password = request.values['pwd']
     session = VimlaAPI.login(username,password)
     number = '+46' + session.readMembersMe()['data']['phoneNumber'][1:]
-    phonebook.save_vimla_token(number, session.token_id)
+    phonebook.save_vimla_token(number, session.access_token)
     return f'ok gonna login {username} <a href=/sendsms?number={urllib.parse.quote(number)}>sms</a>'
 
 
@@ -60,7 +61,9 @@ def send_sms():
     number = request.args.get('number')
     wg2token = phonebook.get_wg2_token(number)
     vimla_token = VimlaAPI.Session({'access_token':phonebook.get_vimla_token(number)})
-    mainMenu('', send_grpc_sms(number, wg2token),vimla_token)
+    cli = DumbphoneCLI('', send_grpc_sms(number, wg2token), vimla_token)
+    cli.mainMenu()
+    cli.startPage()
     return f'sent menu sms to {number}'
 
 

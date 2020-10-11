@@ -41,7 +41,8 @@ class PhoneBook:
         self.phonebook[phonenumber]['wg2_token'] = wg2_token
         self.save()
 
-    def save_vimla_token(self, phonenumber: str, vimla_token: str):
+    def save_vimla_token(self, phonenumber: str, vimla_token):
+        # print(self.phonebook[phonenumber])
         self.phonebook[phonenumber]['vimla_token'] = vimla_token
         self.save()
        
