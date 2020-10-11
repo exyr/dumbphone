@@ -2,6 +2,7 @@ import base64
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
 import urllib
+import urllib.parse
 import random
 import string
 import os
@@ -9,7 +10,6 @@ from requests_oauthlib import *
 from wgtwo.sms.v0 import sms_pb2_grpc, sms_pb2
 from wgtwo.common.v0.phonenumber_pb2 import PhoneNumber, TextAddress
 import grpc
-import codecs
 
 from cli import mainMenu
 
@@ -36,6 +36,7 @@ except:
         json.dump(phonebook, fp)
 
 def sendSMS(number):
+    print("token is ",phonebook[number])
     call = grpc.access_token_call_credentials(phonebook[number])
     channel = grpc.ssl_channel_credentials()
     combined = grpc.composite_channel_credentials(channel, call)
@@ -75,7 +76,6 @@ def receiveSMS():
     except Exception as ex:
         print(repr(ex))
 
-
 oauth = OAuth2Session(
     client_id,
     redirect_uri=redirect_uri,
@@ -89,7 +89,7 @@ class S(BaseHTTPRequestHandler):
         self.end_headers()
 
     def do_GET(self):
-        logging.info("GET request,\nPath: %s\nHeaders:\n%s\n", str(self.path), str(self.headers))
+        # logging.info("GET request,\nPath: %s\nHeaders:\n%s\n", str(self.path), str(self.headers))
         self._set_response()
         try:
             path = urllib.parse.urlparse(self.path)
@@ -113,16 +113,19 @@ class S(BaseHTTPRequestHandler):
                 phonenumber = json.loads(r.text)['phone_number']
                 phonebook[phonenumber] = token['access_token']
                 print(phonebook)
-                self.wfile.write("You are now logged on with {} <br><a href=/sendsms?number={}>sms</a>".format(phonenumber,phonenumber).encode('utf-8'))
+                urlEncodedNumber = urllib.parse.quote(phonenumber)
+                self.wfile.write(f'You are now logged on with {phonenumber} <br><a href=/sendsms?number={urlEncodedNumber}>sms</a>'.encode('utf-8'))
                 with open('data.json', 'w') as fp:
                     json.dump(phonebook, fp)
 
             elif self.path.startswith('/sendsms'):
-                number = query['number']
+                print('OMG SMS SMS SMS')
+                print('pruttquery', query)
+                number = query['number'][0]
+                print(f'the number you want to send to is {number}')
                 sendSMS(number)
+                print(f'hej hej')
                 self.wfile.write("sent menu to {}".format(number).encode('utf-8'))
-
-
             else:
                 authorization_url, state = oauth.authorization_url(
                     'https://id.wgtwo.com/oauth2/auth',
