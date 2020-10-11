@@ -11,14 +11,12 @@ from wgtwo.common.v0.phonenumber_pb2 import PhoneNumber, TextAddress
 import grpc
 import codecs
 
-
 from cli import mainMenu
 
 secretsPath = 'secrets.json'
 try:
     secretsPath = os.environ['SECRET_PATH']
     print("using runtime mounted secret")
-
 except:
     print("using default {}".format(secretsPath))
 
@@ -37,8 +35,7 @@ except:
     with open('data.json', 'w') as fp:
         json.dump(phonebook, fp)
 
-
-def sendSms(number):
+def sendSMS(number):
     call = grpc.access_token_call_credentials(phonebook[number])
     channel = grpc.ssl_channel_credentials()
     combined = grpc.composite_channel_credentials(channel, call)
@@ -56,8 +53,7 @@ def sendSms(number):
 
     mainMenu('', sendWithText)
 
-def reciveSms():
-
+def receiveSMS():
     org_id = secrets["working-group-two"]["vimla"]["client_id"]
     org_secret = secrets["working-group-two"]["vimla"]["client_secret"]
     message_bytes = '{}:{}'.format(org_id,org_secret)
@@ -96,9 +92,10 @@ class S(BaseHTTPRequestHandler):
         logging.info("GET request,\nPath: %s\nHeaders:\n%s\n", str(self.path), str(self.headers))
         self._set_response()
         try:
+            path = urllib.parse.urlparse(self.path)
+            query = urllib.parse.parse_qs(path.query)
+
             if self.path.startswith('/logged-in'):
-                path = urllib.parse.urlparse(self.path)
-                query = urllib.parse.parse_qs(path.query)
 
                 authorization_response = self.path
                 params = authorization_response.split('/logged-in')[-1]
@@ -121,9 +118,8 @@ class S(BaseHTTPRequestHandler):
                     json.dump(phonebook, fp)
 
             elif self.path.startswith('/sendsms'):
-                query = urllib.parse.urlparse(self.path).query.split("&")
-                number = [i for i in query if i.find("number") != -1][-1].split("=")[-1]
-                sendSms(number)
+                number = query['number']
+                sendSMS(number)
                 self.wfile.write("sent menu to {}".format(number).encode('utf-8'))
 
 
@@ -149,10 +145,10 @@ class S(BaseHTTPRequestHandler):
         self.wfile.write("POST request for {}".format(self.path).encode('utf-8'))
 
 
-def run(server_class=HTTPServer, handler_class=S, port=PORT):
+def run(port=PORT):
     logging.basicConfig(level=logging.INFO)
     server_address = ('', port)
-    httpd = server_class(server_address, handler_class)
+    httpd = HTTPServer(server_address, S)
     logging.info('Starting httpd...\n')
     try:
         httpd.serve_forever()
@@ -163,5 +159,5 @@ def run(server_class=HTTPServer, handler_class=S, port=PORT):
 
 
 if __name__ == "__main__":
-    # reciveSms()
+    # receiveSMS()
     run()
