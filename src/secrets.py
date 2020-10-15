@@ -22,9 +22,6 @@ class Secret:
         redirect_uri=redirect_uri,
         scope='offline_access openid phone sms.send.to_subscriber sms.send.from_subscriber')
 
-
-
-
 class PhoneBook:
     phonebook = defaultdict(lambda: {})
     path = 'data.json'

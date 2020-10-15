@@ -13,7 +13,7 @@ from vimla_api import VimlaAPI
 app = Flask(__name__)
 phonebook = PhoneBook()
 secret = Secret()
-
+print(secret)
 
 @app.route('/', methods=['GET'])
 def hello_world():
@@ -22,7 +22,12 @@ def hello_world():
         nonce=''.join(
             random.choice(string.ascii_uppercase + string.ascii_lowercase + string.digits) for _ in range(16)),
         prompt="login")
-    return f'Welcome to Dumbphone, the smart SMS CLI for your subscription: <a href="{authorization_url}">Login</a>'
+    return htmlify(f'''
+            <h1>Welcome to Dumbphone</h1>
+            <h2>the smart SMS CLI for your subscription</h2>
+            <a href="{authorization_url}">Login</a>
+    ''')
+
 
 
 @app.route('/logged-in', methods=['GET'])
@@ -39,7 +44,11 @@ def logged_in():
     r = secret.oauth.get('https://id.wgtwo.com/userinfo')
     phonenumber = json.loads(r.text)['phone_number']
     phonebook.save_wg2_token(phonenumber, token['access_token'])
-    return f'You are now logged via wgtwo on with {phonenumber} <br> <a href=/login/vimla>Connect vimla</a>'
+
+    return htmlify(f'''
+    You are now logged via wgtwo on with {phonenumber} <br>
+        <a href=/login/vimla>Connect vimla</a>
+    ''')
 
 
 @app.route('/login/vimla', methods=['GET', 'POST'])
@@ -53,8 +62,11 @@ def login_vimla():
     session = VimlaAPI.login(username,password)
     number = '+46' + session.readMembersMe()['data']['phoneNumber'][1:]
     phonebook.save_vimla_token(number, session.access_token)
-    return f'ok gonna login {username} <a href=/sendsms?number={urllib.parse.quote(number)}>sms</a>'
+    return htmlify(f'ok gonna login {username} <a href=/sendsms?number={urllib.parse.quote(number)}>sms</a>')
 
+@app.route('/style.css', methods=['GET'])
+def style():
+    return render_template('style.css')
 
 @app.route("/sendsms", methods=['GET'])
 def send_sms():
@@ -64,9 +76,19 @@ def send_sms():
     cli = DumbphoneCLI('', send_grpc_sms(number, wg2token), vimla_token)
     cli.mainMenu()
     cli.startPage()
-    return f'sent menu sms to {number}'
+    return htmlify(f'sent menu sms to {number}')
 
-
+def htmlify(string):
+    return f'''
+    <head>
+        <link rel="stylesheet" href="style.css">
+    </head>
+    <body>
+        <main>
+           {string}
+        </main>
+    </body>
+    '''
 
 
 if __name__ == '__main__':

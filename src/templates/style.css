@@ -1,35 +1,29 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dumpphone CLI - LOGIN</title>
-
-    <script>
-        function hello(node) {
-            if (node.value.length === 0) {
-                node.parentElement.classList.remove('non-empty')
-            } else {
-                node.parentElement.classList.add('non-empty')
-            }
-        }
-    </script>
-<!-- {{ url_for('static', filename='style.css') }} -->
-    <style>
-        .hello {
-color: red;
+.hello {
+    color: red;
 }
+
 main {
-display: flex;
-flex-direction: column;
-align-items: center;
-font-family: monospace;
-padding: 30px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-family: monospace;
+    padding: 30px;
+}
+
+a {
+    font-size: 100px;
+    font-family: monospace;
+    font-weight: bold;
+    text-decoration: none;
+    background-color: #007A87;
+    color: white;
+    border-radius: 2px;
+    padding: 28px;
 }
 
 h1 {
-font-size: 40px;
-margin: 0;
+    font-size: 40px;
+    margin: 0;
 }
 
 h2 {
@@ -112,27 +106,3 @@ input[type="submit"] {
     transform: translateY(-16px);
     font-size: 12px;
 }
-    </style>
-</head>
-
-<body>
-    <main>
-        <h1>Dumbphone CLI</h1>
-        <h2>LOGIN</h2>
-        <form action="/login/vimla" method="post" id='form'>
-            <section class='parent input-field'>
-                <label for="username">username</label>
-                <input type="text" name="username" oninput="hello(this)"/>
-            </section>
-
-            <section class='parent input-field'>
-                <label for="password">password</label>
-                <input type="password" name="password" oninput="hello(this)"/>
-            </section>
-
-            <input type="submit" value="Submit">
-        </form>
-
-    </main>
-</body>
-</html>
