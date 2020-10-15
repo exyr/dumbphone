@@ -39,7 +39,7 @@ def logged_in():
     r = secret.oauth.get('https://id.wgtwo.com/userinfo')
     phonenumber = json.loads(r.text)['phone_number']
     phonebook.save_wg2_token(phonenumber, token['access_token'])
-    return f'You are now logged on with {phonenumber} <br> <a href=/login/vimla>Connect vimla</a>'
+    return f'You are now logged via wgtwo on with {phonenumber} <br> <a href=/login/vimla>Connect vimla</a>'
 
 
 @app.route('/login/vimla', methods=['GET', 'POST'])

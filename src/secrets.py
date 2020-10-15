@@ -38,14 +38,19 @@ class PhoneBook:
             self.save()
 
     def save_wg2_token(self, phonenumber: str, wg2_token: str):
+        self.save_phonenumber(phonenumber)
         self.phonebook[phonenumber]['wg2_token'] = wg2_token
         self.save()
 
     def save_vimla_token(self, phonenumber: str, vimla_token):
-        # print(self.phonebook[phonenumber])
+        self.save_phonenumber(phonenumber)
         self.phonebook[phonenumber]['vimla_token'] = vimla_token
         self.save()
-       
+
+    def save_phonenumber(self,phonenumber):
+        if phonenumber not in self.phonebook:
+            self.phonebook[phonenumber] = {}
+
     def save(self):
         with open(self.path, 'w') as fp:
             json.dump(self.phonebook, fp)
