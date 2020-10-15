@@ -25,7 +25,7 @@ def hello_world():
     return htmlify(f'''
             <h1>Welcome to Dumbphone</h1>
             <h2>the smart SMS CLI for your subscription</h2>
-            <a href="{authorization_url}">Login</a>
+            <a href="{authorization_url}">Connect</a>
     ''')
 
 
@@ -46,7 +46,7 @@ def logged_in():
     phonebook.save_wg2_token(phonenumber, token['access_token'])
 
     return htmlify(f'''
-    You are now logged via wgtwo on with {phonenumber} <br>
+    <h2>You are now logged via wgtwo on with {phonenumber} </h2>
         <a href=/login/vimla>Connect vimla</a>
     ''')
 
@@ -58,11 +58,13 @@ def login_vimla():
         return render_template('vimla_login.html')
     # print(repr(request))
     username = request.values['username']
-    password = request.values['pwd']
+    password = request.values['password']
     session = VimlaAPI.login(username,password)
     number = '+46' + session.readMembersMe()['data']['phoneNumber'][1:]
     phonebook.save_vimla_token(number, session.access_token)
-    return htmlify(f'ok gonna login {username} <a href=/sendsms?number={urllib.parse.quote(number)}>sms</a>')
+    return htmlify(f'''
+    <h2>{username} is all connected</h2> 
+    <a href=/sendsms?number={urllib.parse.quote(number)}>sms</a>''')
 
 @app.route('/style.css', methods=['GET'])
 def style():
@@ -76,12 +78,12 @@ def send_sms():
     cli = DumbphoneCLI('', send_grpc_sms(number, wg2token), vimla_token)
     cli.mainMenu()
     cli.startPage()
-    return htmlify(f'sent menu sms to {number}')
+    return htmlify(f'<h2>sent menu sms to {number}</h2>')
 
 def htmlify(string):
     return f'''
     <head>
-        <link rel="stylesheet" href="style.css">
+        <link rel="stylesheet" href="/style.css">
     </head>
     <body>
         <main>
