@@ -13,6 +13,9 @@ class VimlaAPI(object):
         def readPriceplan(self):
             return requests.request('GET', f'{VimlaAPI.HOST_NAME}/members/me/subscriptions/-0/priceplan', headers=self.headers).json()
         
+        def readHistory(self):
+            return requests.request('GET', f'{VimlaAPI.HOST_NAME}/members/me/consumption/history', headers=self.headers).json()
+
         def readMembersMe(self):
             return requests.request('GET', f'{VimlaAPI.HOST_NAME}/members/me/', headers=self.headers).json()
 

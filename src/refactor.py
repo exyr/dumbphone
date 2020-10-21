@@ -73,11 +73,13 @@ def style():
 @app.route("/sendsms", methods=['GET'])
 def send_sms():
     number = request.args.get('number')
+    selected = request.args.get('selected')
     wg2token = phonebook.get_wg2_token(number)
     vimla_token = VimlaAPI.Session({'access_token':phonebook.get_vimla_token(number)})
-    cli = DumbphoneCLI('', send_grpc_sms(number, wg2token), vimla_token)
-    cli.mainMenu()
+    writer = lambda _: selected
+    cli = DumbphoneCLI(writer, send_grpc_sms(number, wg2token), vimla_token)
     cli.startPage()
+    cli.mainMenu()
     return htmlify(f'<h2>sent menu sms to {number}</h2>')
 
 def htmlify(string):

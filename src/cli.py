@@ -1,5 +1,5 @@
 from typing import Callable
-
+from datetime import datetime
 from secrets import PhoneBook
 from vimla_api import VimlaAPI
 
@@ -41,12 +41,15 @@ class DumbphoneCLI(object):
         for idx,option in enumerate(options):
             back += f'{idx+1}: {option}\n'
         self.write(back)
-        # answer = read()
-        # print(f'I got {answer} back')
+        answer = self.read('')
+        choice = options[int(answer)-1]
+        print(f'I got {answer} back, sending {choice}')
+        # self.usage()
+        getattr(self, choice.lower())()
 
     def startPage(self):
         me=self.session.readMembersMe()
-        print(me)
+        # print(me)
         name = f"{me['data']['firstName']} {me['data']['lastName']}"
         consumption = me['data']['subscriptions'][0]['consumption']
         voiceCalled = consumption['voice']['spent']
@@ -57,25 +60,43 @@ class DumbphoneCLI(object):
         self.write(to_send)
         pass
 
-    def settingsPage(read, write, session: VimlaAPI.Session):
-        return (
-            f''
-            f''
-            f''
-            f''
-            f''
-            f''
-        )
+    def usage(self):
+        # print('you called sire')
+        for row in self.session.readHistory()['data']:
+            start = all_months[datetime.fromisoformat(row['startDate'][:-1]).month]
+            # self.write(pretty_print_json(f'{row}'))
+            self.write(f'{start}:\n{row}')
 
-reader = lambda r: print(r)
-# writer = lambda _: input()
+        # print(history)
+        # graphs in sms are hard, send a mms?
+
+
+    # def settingsPage(read, write, session: VimlaAPI.Session):
+    #     return (
+    #         f''
+    #         f''
+    #         f''
+    #         f''
+    #         f''
+    #         f''
+    #     )
+def pretty_print_json(json):
+    # print(json)
+    str = ''
+    for key, val in json: #fix me, im super broken
+        str = f'{str}\n{key}: {val}'
+    return str
+
+all_months = ['','January','Feburary','March','April','May','June','July','August','September','October','November','December']
+
+writer = lambda r: print(r)
+reader = lambda _: input()
 
 if __name__ == "__main__":
-    token = PhoneBook().get_vimla_token('+46730347518')
+    token = PhoneBook().get_vimla_token('+46724423357')
     sess = VimlaAPI.Session({"access_token": token})
     print(sess)
-    cli = DumbphoneCLI('',reader,sess)
-    cli.mainMenu()
-    print('----')
+    cli = DumbphoneCLI(reader,writer,sess)
     cli.startPage()
-    # mainMenu('',reader)
+    print('----')
+    cli.mainMenu()
